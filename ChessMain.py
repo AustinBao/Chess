@@ -24,12 +24,44 @@ def main():
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
     gs = ChessEngine.GameState()
+    validMoves = gs.getValidMoves()
+    moveMade = False # flag variable for when a valid move is made. This will tell us when to regenerate validMoves
     loadImages()  # only does this once since its very taxing
+    sqSelected = ()
+    playerClicks = []
     running = True
     while running:
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
+            elif e.type == p.MOUSEBUTTONDOWN:
+                location = p.mouse.get_pos()
+                col, row = location[0]//SQ_SIZE, location[1]//SQ_SIZE
+                if sqSelected == (row, col): #player clicks same square twice
+                    sqSelected = ()
+                    playerClicks = []
+                else:
+                    sqSelected = (row, col)
+                    playerClicks.append(sqSelected)
+
+                if len(playerClicks) == 2:
+                    move = ChessEngine.Move(playerClicks[0], playerClicks[1], gs.board)
+                    print(move.getChessNotation())
+                    if move in validMoves:
+                        gs.makeMove(move)
+                        moveMade = True
+                    sqSelected = ()
+                    playerClicks = []
+
+            elif e.type == p.KEYDOWN:
+                if e.key == p.K_LEFT:
+                    gs.undoMove()
+                    moveMade = True
+
+        if moveMade:
+            validMoves = gs.getValidMoves()
+            moveMade = False
+
         drawGameState(screen, gs)
         clock.tick(MAX_FPS)
         p.display.flip()
