@@ -38,8 +38,8 @@ class GameState():
             ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
             ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "bB", "--", "--"],
+            ["--", "--", "--", "wB", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]
@@ -90,18 +90,57 @@ class GameState():
                     moves.append(Move((r, c), (r - 1, c - 1), self.board))
             # DON'T use elif here since this will ignore any possible captures to the right of pawns
             if c + 1 <= 7:  # captures to the right
-                if self.board[r - 1][c + 1][0] == "b":  # enemy piece to capture on the left diagonal
+                if self.board[r - 1][c + 1][0] == "b":  # enemy piece to capture on the right diagonal
                     moves.append(Move((r, c), (r - 1, c + 1), self.board))
         else:  # black pawn moves
-            pass
+            if self.board[r + 1][c] == "--":
+                moves.append(Move((r, c), (r + 1, c), self.board))
+                if r == 1 and self.board[r + 2][c] == "--":
+                    moves.append(Move((r, c), (r + 2, c), self.board))
+            if c + 1 >= 0:  # captures to the left
+                if self.board[r + 1][c - 1][0] == "w":
+                    moves.append(Move((r, c), (r + 1, c - 1), self.board))
+            if c + 1 <= 7:
+                if self.board[r + 1][c + 1][0] == "w":
+                    moves.append(Move((r, c), (r + 1, c + 1), self.board))
 
     def getRookMoves(self, r, c, moves):
-        pass
-
-    def getKnightMoves(self, r, c, moves):
-        pass
+        direction = [(0, 1), (0, -1), (-1, 0), (1, 0)]
+        opponent = "b" if self.whiteToMove else "w"
+        friendly = "w" if self.whiteToMove else "b"
+        for d in direction:
+            dr, dc = d[0], d[1]
+            for i in range(1, 8):
+                new_r, new_c = r + dr * i, c + dc * i
+                if 0 <= new_r < 8 and 0 <= new_c < 8:
+                    if self.board[new_r][new_c][0] == opponent:
+                        moves.append(Move((r,c), (new_r, new_c), self.board))
+                        break
+                    elif self.board[new_r][new_c][0] == friendly:
+                        break
+                    moves.append(Move((r, c), (new_r, new_c), self.board))
+                else:
+                    break
 
     def getBishopMoves(self, r, c, moves):
+        direction = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        opponent = "b" if self.whiteToMove else "w"
+        friendly = "w" if self.whiteToMove else "b"
+        for d in direction:
+            dr, dc = d[0], d[1]
+            for i in range(1, 8):
+                new_r, new_c = r + dr * i, c + dc * i
+                if 0 <= new_r < 8 and 0 <= new_c < 8:
+                    if self.board[new_r][new_c][0] == opponent:
+                        moves.append(Move((r, c), (new_r, new_c), self.board))
+                        break
+                    elif self.board[new_r][new_c][0] == friendly:
+                        break
+                    moves.append(Move((r, c), (new_r, new_c), self.board))
+                else:
+                    break
+
+    def getKnightMoves(self, r, c, moves):
         pass
 
     def getQueenMoves(self, r, c, moves):
