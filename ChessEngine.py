@@ -38,8 +38,8 @@ class GameState():
             ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
             ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "--", "bB", "--", "--"],
-            ["--", "--", "--", "wB", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]
@@ -104,7 +104,7 @@ class GameState():
                 if self.board[r + 1][c + 1][0] == "w":
                     moves.append(Move((r, c), (r + 1, c + 1), self.board))
 
-    def getRookMoves(self, r, c, moves):
+    def getRookMoves(self, r, c, moves) -> None:
         direction = [(0, 1), (0, -1), (-1, 0), (1, 0)]
         opponent = "b" if self.whiteToMove else "w"
         friendly = "w" if self.whiteToMove else "b"
@@ -114,7 +114,7 @@ class GameState():
                 new_r, new_c = r + dr * i, c + dc * i
                 if 0 <= new_r < 8 and 0 <= new_c < 8:
                     if self.board[new_r][new_c][0] == opponent:
-                        moves.append(Move((r,c), (new_r, new_c), self.board))
+                        moves.append(Move((r, c), (new_r, new_c), self.board))
                         break
                     elif self.board[new_r][new_c][0] == friendly:
                         break
@@ -122,7 +122,7 @@ class GameState():
                 else:
                     break
 
-    def getBishopMoves(self, r, c, moves):
+    def getBishopMoves(self, r, c, moves) -> None:
         direction = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
         opponent = "b" if self.whiteToMove else "w"
         friendly = "w" if self.whiteToMove else "b"
@@ -140,11 +140,25 @@ class GameState():
                 else:
                     break
 
-    def getKnightMoves(self, r, c, moves):
-        pass
+    def getKnightMoves(self, r, c, moves) -> None:
+        direction = [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (2, -1), (2, 1), (1, -2), (1, 2)]
+        opponent = "b" if self.whiteToMove else "w"
+        friendly = "w" if self.whiteToMove else "b"
+        for x, y in direction:
+            if 0 <= r + x <= 7 and 0 <= c + y <= 7:
+                if self.board[r + x][c + y][0] != friendly:
+                    moves.append(Move((r, c), (r + x, c + y), self.board))
 
-    def getQueenMoves(self, r, c, moves):
-        pass
+    def getQueenMoves(self, r, c, moves) -> None:
+        self.getRookMoves(r, c, moves)
+        self.getBishopMoves(r, c, moves)
 
     def getKingMoves(self, r, c, moves):
-        pass
+        directions = [(-1, -1), (-1, 0), (-1, 1), (1, -1), (1, 0), (1, 1), (0, -1), (0, 1)]
+        friendly = "w" if self.whiteToMove else "b"
+        for x, y in directions:
+            newRow, newCol = r + x, c + y
+            if 0 <= newRow <= 7 and 0 <= newCol <= 7:
+                if self.board[newRow][newCol][0] != friendly:
+                    moves.append(Move((r, c), (newRow, newCol), self.board))
+
