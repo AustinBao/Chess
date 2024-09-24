@@ -6,13 +6,19 @@ class Move:
     filesToCols = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
     colsToFiles = {v: k for k, v in filesToCols.items()}
 
-    def __init__(self, start, end, board):
+    def __init__(self, start, end, board, isEnpassantMove=False):
         self.startRow = start[0]
         self.startCol = start[1]
         self.endRow = end[0]
         self.endCol = end[1]
         self.pieceMoved = board[self.startRow][self.startCol]
         self.pieceCaptured = board[self.endRow][self.endCol]
+        # pawn promotion
+        self.isPawnPromo = (self.pieceMoved == "wP" and self.endRow == 0) or (
+                    self.pieceMoved == "bP" and self.endRow == 7)
+        # en passant
+        self.isEnpassantMove = isEnpassantMove
+
         self.moveID = self.startRow * 1000 + self.startCol * 100 + self.endRow * 10 + self.endCol
 
     # Overriding equals method (this allows python to equate two different objects with the same value as equal)
@@ -38,7 +44,7 @@ class GameState():
             ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
             ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["--", "bR", "--", "--", "wP", "--", "--", "wR"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
@@ -48,12 +54,24 @@ class GameState():
                              "B": self.getBishopMoves, "Q": self.getQueenMoves, "K": self.getKingMoves}
         self.whiteToMove = True
         self.moveLog = []
+        self.whiteKingLocation = (7, 4)
+        self.blackKingLocation = (0, 4)
+        self.inCheck()
+        self.checkMate = False
+        self.staleMate = False
 
     def makeMove(self, move: Move) -> None:
         self.board[move.startRow][move.startCol] = "--"
         self.board[move.endRow][move.endCol] = move.pieceMoved
         self.moveLog.append(move)
         self.whiteToMove = not self.whiteToMove
+        if move.pieceMoved == "wK":
+            self.whiteKingLocation = (move.endRow, move.endCol)
+        elif move.pieceMoved == "bK":
+            self.blackKingLocation = (move.endRow, move.endCol)
+
+        if move.isPawnPromo:
+            self.board[move.endRow][move.endCol] = move.pieceMoved[0] + "Q"
 
     def undoMove(self) -> None:
         if len(self.moveLog) != 0:
@@ -61,10 +79,49 @@ class GameState():
             self.board[lastMove.startRow][lastMove.startCol] = lastMove.pieceMoved
             self.board[lastMove.endRow][lastMove.endCol] = lastMove.pieceCaptured
             self.whiteToMove = not self.whiteToMove
+            if lastMove.pieceMoved == "wK":
+                self.whiteKingLocation = (lastMove.startRow, lastMove.startCol)
+            elif lastMove.pieceMoved == "bK":
+                self.blackKingLocation = (lastMove.startRow, lastMove.startCol)
 
     # With checks in mind
     def getValidMoves(self):
-        return self.getAllPossibleMoves()
+        # 1. generate all moves
+        moves = self.getAllPossibleMoves()
+        # 2. for each move, make the move
+        for i in range(len(moves) - 1, -1, -1):
+            self.makeMove(moves[i])
+            # 3. generate oppMoves and see if they attack you king
+            self.whiteToMove = not self.whiteToMove
+            if self.inCheck():
+                # 4. if they do attack you king, remove that invalid move
+                moves.remove(moves[i])
+            self.whiteToMove = not self.whiteToMove
+            self.undoMove()
+        if len(moves) == 0:  # either stalemate or checkmate
+            if self.inCheck():
+                self.checkMate = True
+            else:
+                self.staleMate = True
+        else:
+            self.checkMate = False
+            self.staleMate = False
+        return moves
+
+    def inCheck(self):
+        if self.whiteToMove:
+            return self.squareUnderAttack(self.whiteKingLocation[0], self.whiteKingLocation[1])
+        else:
+            return self.squareUnderAttack(self.blackKingLocation[0], self.blackKingLocation[1])
+
+    def squareUnderAttack(self, r, c) -> bool:
+        self.whiteToMove = not self.whiteToMove
+        opponentMoves = self.getAllPossibleMoves()
+        self.whiteToMove = not self.whiteToMove
+        for move in opponentMoves:
+            if move.endRow == r and move.endCol == c:
+                return True
+        return False
 
     # looking at all moves
     def getAllPossibleMoves(self) -> list[Move]:
@@ -97,7 +154,7 @@ class GameState():
                 moves.append(Move((r, c), (r + 1, c), self.board))
                 if r == 1 and self.board[r + 2][c] == "--":
                     moves.append(Move((r, c), (r + 2, c), self.board))
-            if c + 1 >= 0:  # captures to the left
+            if c + 1 >= 0:
                 if self.board[r + 1][c - 1][0] == "w":
                     moves.append(Move((r, c), (r + 1, c - 1), self.board))
             if c + 1 <= 7:
@@ -161,4 +218,3 @@ class GameState():
             if 0 <= newRow <= 7 and 0 <= newCol <= 7:
                 if self.board[newRow][newCol][0] != friendly:
                     moves.append(Move((r, c), (newRow, newCol), self.board))
-
