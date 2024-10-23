@@ -1,7 +1,7 @@
 # Main driver file. handles user input and displaying current GameState Object
 
 import pygame as p
-import ChessEngine
+import ChessEngine, ChessAI
 
 WIDTH = HEIGHT = 512  # 400 also works
 DIMENSION = 8
@@ -20,60 +20,86 @@ def loadImages():
         IMAGES[piece] = p.transform.scale(p.image.load("images/" + piece + ".png"), (SQ_SIZE, SQ_SIZE))
     #     we can now access an image by keying the dict
 
-
-def main():
+def initialize_game():
     p.init()
     screen = p.display.set_mode((WIDTH, HEIGHT))
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
     gs = ChessEngine.GameState()
     validMoves = gs.getValidMoves()
-    moveMade = False  # flag variable for when a valid move is made. This will tell us when to regenerate validMoves
-    animate = False  # flag variable for when we should animate
-    loadImages()  # only does this once since its very taxing
-    sqSelected = ()
-    playerClicks = []
-    gameOver = False
+    loadImages()  # only does this once since it's taxing
+    return screen, clock, gs, validMoves
+
+
+def handle_mouse_click(sqSelected, playerClicks, gs, validMoves, moveMade, animate):
+    location = p.mouse.get_pos()
+    col, row = location[0] // SQ_SIZE, location[1] // SQ_SIZE
+    if sqSelected == (row, col):  # player clicks the same square twice
+        sqSelected = ()
+        playerClicks = []
+    else:
+        sqSelected = (row, col)
+        playerClicks.append(sqSelected)
+        if len(playerClicks) == 2:
+            move = ChessEngine.Move(playerClicks[0], playerClicks[1], gs.board)
+            if move in validMoves:
+                gs.makeMove(move)
+                moveMade = True
+                animate = True
+                sqSelected = ()
+                playerClicks = []
+    if not moveMade:
+        playerClicks = [sqSelected]
+    return sqSelected, playerClicks, moveMade, animate
+
+
+def handle_key_press(e, gs, validMoves, sqSelected, playerClicks, gameOver):
+    moveMade = False
+    animate = False
+    if e.key == p.K_LEFT:  # undo move
+        gs.undoMove()
+        moveMade = True
+        animate = False
+    elif e.key == p.K_r:  # reset board when r is pressed
+        gs = ChessEngine.GameState()
+        validMoves = gs.getValidMoves()
+        sqSelected = ()
+        playerClicks = []
+        gameOver = False
+    return gs, validMoves, sqSelected, playerClicks, moveMade, animate, gameOver
+
+def game_over_text(gs, screen):
+    if gs.checkmate:
+        winner = "Black" if gs.whiteToMove else "White"
+        drawText(screen, f"{winner} wins by checkmate")
+    elif gs.stalemate:
+        drawText(screen, "Stalemate")
+
+def main():
+    screen, clock, gs, validMoves = initialize_game()
+    sqSelected, playerClicks = (), []
+    moveMade, animate, gameOver = False, False, False
+    playerOne = True  # if a Human is playing white, then true. If ai is playing, then false
+    playerTwo = False  # Same as above but for black
     running = True
     while running:
+        isHumanTurn = (gs.whiteToMove and playerOne) or (not gs.whiteToMove and playerTwo)
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
-            elif e.type == p.MOUSEBUTTONDOWN:
-                if not gameOver:
-                    location = p.mouse.get_pos()
-                    col, row = location[0] // SQ_SIZE, location[1] // SQ_SIZE
-                    if sqSelected == (row, col):  # player clicks same square twice
-                        sqSelected = ()
-                        playerClicks = []
-                    else:
-                        sqSelected = (row, col)
-                        playerClicks.append(sqSelected)
-
-                    if len(playerClicks) == 2:
-                        move = ChessEngine.Move(playerClicks[0], playerClicks[1], gs.board)
-                        for i in range(len(validMoves)):
-                            if move == validMoves[i]:
-                                gs.makeMove(validMoves[i])
-                                moveMade = True
-                                animate = True
-                                sqSelected = ()
-                                playerClicks = []
-                        if not moveMade:
-                            playerClicks = [sqSelected]
-
+            elif e.type == p.MOUSEBUTTONDOWN and not gameOver and isHumanTurn:
+                sqSelected, playerClicks, moveMade, animate = handle_mouse_click(sqSelected, playerClicks, gs,
+                                        validMoves, moveMade, animate)
             elif e.type == p.KEYDOWN:
-                if e.key == p.K_LEFT:
-                    gs.undoMove()
-                    moveMade = True
-                    animate = False
-                if e.key == p.K_r:  # reset board when r is pressed
-                    gs = ChessEngine.GameState()
-                    validMoves = gs.getValidMoves()
-                    sqSelected = ()
-                    playerClicks = []
-                    moveMade = False
-                    animate = False
+                gs, validMoves, sqSelected, playerClicks, moveMade, animate, gameOver = handle_key_press(e, gs,
+                                        validMoves, sqSelected, playerClicks, gameOver)
+
+        # AI move finder logic
+        if not gameOver and not isHumanTurn:
+            AIMove = ChessAI.findRandomMove(validMoves)
+            gs.makeMove(AIMove)
+            moveMade = True
+            animate = True
 
         if moveMade:
             if animate:
@@ -84,15 +110,9 @@ def main():
 
         drawGameState(screen, gs, validMoves, gs.moveLog, sqSelected)
 
-        if gs.checkmate:
+        if gs.checkmate or gs.stalemate:
             gameOver = True
-            if gs.whiteToMove:
-                drawText(screen, "Black wins by checkmate")
-            else:
-                drawText(screen, "White wins by checkmate")
-        elif gs.stalemate:
-            gameOver = True
-            drawText(screen, "Stalemate")
+            game_over_text(gs, screen)
 
         clock.tick(MAX_FPS)
         p.display.flip()
@@ -133,7 +153,7 @@ Animating piece moves
 def animateMoves(move, screen, board, clock):
     dR = move.endRow - move.startRow
     dC = move.endCol - move.startCol
-    framesPerSquare = 3
+    framesPerSquare = 5
     frameCount = (abs(dR) + abs(dC)) * framesPerSquare
     for frame in range(frameCount + 1):
         r, c = (move.startRow + dR * (frame / frameCount), move.startCol + dC * (frame / frameCount))
