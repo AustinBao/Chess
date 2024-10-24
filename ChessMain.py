@@ -34,22 +34,24 @@ def initialize_game():
 def handle_mouse_click(sqSelected, playerClicks, gs, validMoves, moveMade, animate):
     location = p.mouse.get_pos()
     col, row = location[0] // SQ_SIZE, location[1] // SQ_SIZE
-    if sqSelected == (row, col):  # player clicks the same square twice
+    if sqSelected == (row, col):  # player clicks same square twice
         sqSelected = ()
         playerClicks = []
     else:
         sqSelected = (row, col)
         playerClicks.append(sqSelected)
-        if len(playerClicks) == 2:
-            move = ChessEngine.Move(playerClicks[0], playerClicks[1], gs.board)
-            if move in validMoves:
-                gs.makeMove(move)
+    if len(playerClicks) == 2:
+        move = ChessEngine.Move(playerClicks[0], playerClicks[1], gs.board)
+        for i in range(len(validMoves)):
+            if move == validMoves[i]:
+                gs.makeMove(validMoves[i])
                 moveMade = True
                 animate = True
                 sqSelected = ()
                 playerClicks = []
-    if not moveMade:
-        playerClicks = [sqSelected]
+        if not moveMade:
+            playerClicks = [sqSelected]
+
     return sqSelected, playerClicks, moveMade, animate
 
 
