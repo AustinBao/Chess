@@ -20,6 +20,7 @@ def loadImages():
         IMAGES[piece] = p.transform.scale(p.image.load("images/" + piece + ".png"), (SQ_SIZE, SQ_SIZE))
     #     we can now access an image by keying the dict
 
+
 def initialize_game():
     p.init()
     screen = p.display.set_mode((WIDTH, HEIGHT))
@@ -70,12 +71,14 @@ def handle_key_press(e, gs, validMoves, sqSelected, playerClicks, gameOver):
         gameOver = False
     return gs, validMoves, sqSelected, playerClicks, moveMade, animate, gameOver
 
+
 def game_over_text(gs, screen):
     if gs.checkmate:
         winner = "Black" if gs.whiteToMove else "White"
         drawText(screen, f"{winner} wins by checkmate")
     elif gs.stalemate:
         drawText(screen, "Stalemate")
+
 
 def main():
     screen, clock, gs, validMoves = initialize_game()
@@ -91,14 +94,19 @@ def main():
                 running = False
             elif e.type == p.MOUSEBUTTONDOWN and not gameOver and isHumanTurn:
                 sqSelected, playerClicks, moveMade, animate = handle_mouse_click(sqSelected, playerClicks, gs,
-                                        validMoves, moveMade, animate)
+                                                                                 validMoves, moveMade, animate)
             elif e.type == p.KEYDOWN:
                 gs, validMoves, sqSelected, playerClicks, moveMade, animate, gameOver = handle_key_press(e, gs,
-                                        validMoves, sqSelected, playerClicks, gameOver)
+                                                                                                         validMoves,
+                                                                                                         sqSelected,
+                                                                                                         playerClicks,
+                                                                                                         gameOver)
 
         # AI move finder logic
         if not gameOver and not isHumanTurn:
-            AIMove = ChessAI.findRandomMove(validMoves)
+            AIMove = ChessAI.findGreedyMove(gs, validMoves)
+            if AIMove is None:
+                AIMove = ChessAI.findRandomMove(validMoves)
             gs.makeMove(AIMove)
             moveMade = True
             animate = True

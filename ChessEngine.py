@@ -1,6 +1,8 @@
 # Stores all the information about the state of a chess game. Also determines valid moves + move log
 
 import copy
+
+
 class CastleRights:
     def __init__(self, wks, bks, wqs, bqs):
         self.wks = wks
@@ -332,12 +334,15 @@ class GameState:
     """
     Generate all valid castle moves for the king at (r,c) and add them to the list of moves
     """
+
     def getCastleMoves(self, r, c, moves):
         if self.squareUnderAttack(r, c):
             return  # can't castle when in check
-        if (self.whiteToMove and self.currentCastlingRight.wks) or (not self.whiteToMove and self.currentCastlingRight.bks):
+        if (self.whiteToMove and self.currentCastlingRight.wks) or (
+                not self.whiteToMove and self.currentCastlingRight.bks):
             self.getKingsideCastleMoves(r, c, moves)
-        if (self.whiteToMove and self.currentCastlingRight.wqs) or (not self.whiteToMove and self.currentCastlingRight.bqs):
+        if (self.whiteToMove and self.currentCastlingRight.wqs) or (
+                not self.whiteToMove and self.currentCastlingRight.bqs):
             self.getQueensideCastleMoves(r, c, moves)
 
     def getKingsideCastleMoves(self, r, c, moves):
