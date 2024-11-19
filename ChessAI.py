@@ -69,7 +69,7 @@ piecePositionScores = {"N": knightScores, "R": rookScores, "Q": queenScores, "K"
 
 CHECKMATE = 1000
 STALEMATE = 0
-DEPTH = 3
+DEPTH = 2
 # negative value means black is winning, positive if white is winning
 
 """

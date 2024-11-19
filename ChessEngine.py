@@ -287,7 +287,7 @@ class GameState:
             if self.board[r - 1][c] == "--":  # 1 square advance
                 moves.append(Move((r, c), (r - 1, c), self.board))
                 if r == 6 and self.board[r - 2][c] == "--":  # 2 square advance. Inside other if statement since if
-                    # you cant even move one square forward, you won't be able to with 2 squares forward.
+                    # if you cant even move one square forward, you won't be able to with 2 squares forward.
                     moves.append(Move((r, c), (r - 2, c), self.board))
             # This if stops pawns from capturing pawns from one side of the board to the other... kinda cool idea ngl
             if c - 1 >= 0:  # captures to the left
